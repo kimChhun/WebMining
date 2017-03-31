@@ -83,8 +83,7 @@ public class WebPageIndexerQueue extends Thread {
 	
 	private void index(Metadata metadata, String content) {
 		if(indexer == null) {
-			System.err.println("WebPageIndexerQueue doesn't contains a WebPageIndexer, you must set it in Labo1.java before starting the crawling");
-			System.exit(1);
+			throw new IllegalStateException("WebPageIndexerQueue doesn't contain a WebPageIndexer, you must set it in Labo1.java before starting the crawling");
 		}
 		indexer.index(metadata, content);
 	}

@@ -6,16 +6,24 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 import ch.heigvd.wem.WebPageIndexerQueue;
+import ch.heigvd.wem.data.Document;
 import ch.heigvd.wem.WebPageCrawler;
 import ch.heigvd.wem.interfaces.Index;
 import ch.heigvd.wem.interfaces.Indexer;
+import ch.heigvd.wem.interfaces.Retriever;
+import ch.heigvd.wem.interfaces.Retriever.WeightingType;
 import edu.uci.ics.crawler4j.crawler.CrawlConfig;
 import edu.uci.ics.crawler4j.crawler.CrawlController;
 import edu.uci.ics.crawler4j.fetcher.PageFetcher;
 import edu.uci.ics.crawler4j.robotstxt.RobotstxtConfig;
 import edu.uci.ics.crawler4j.robotstxt.RobotstxtServer;
+import edu.uci.ics.crawler4j.url.WebURL;
 
 public class Labo1 {
 
@@ -25,10 +33,12 @@ public class Labo1 {
 	}
 	
 	// CONFIGURATION
-	public static final String  START_URL 			= "http://iict.heig-vd.ch";
+	public static final String  START_URL 			= "https://en.wikipedia.org/wiki/Web_mining"; //"http://iict.heig-vd.ch";
 	public static final boolean DEBUG				= true;
-	private static final Mode	mode				= Mode.CRAWL;
-	private static final String	indexSaveFileName	= "iict.bin";
+	private static final Mode	mode				= Mode.RESTORE;
+	private static final String	indexSaveFileName	= "index.bin";
+	private static final double MIN_SIMILARITY		= 0.0000d; // the minimum similarity to display in result list. set to 0 to show all matches.
+	private static final int	EXCERPT_LENGTH		= 120; //the number of characters to display per result
 	
 	public static void main(String[] args) {
 
@@ -47,8 +57,75 @@ public class Labo1 {
 			break;
 		}
 
-		//TODO recherche
+
+		//normalize input arguments into an array of single words
+		List<String> termList = new LinkedList<String>();
+		for (String arg : args) termList.addAll(Arrays.asList(arg.split("\\s+")));
+		String[] terms = termList.toArray(new String[0]);
 		
+		//Retriever retriever = new RetrieverImpl(index);
+		Retriever retriever = new RetrieverImpl(index, WeightingType.TF_IDF);
+		
+		Map<Long, Double> results = retriever.executeQuery(String.join(" ", terms));
+		
+		int i = 1;
+		for (Map.Entry<Long, Double>  result : results.entrySet()) {
+			Double score = result.getValue();
+			Document document = index.getDocument(result.getKey());
+			if (score < MIN_SIMILARITY) break;
+			printDocument(document, score, terms, i);
+			i++;
+		}
+		
+	}
+	
+	private static void printDocument(Document document, double score, String[] terms, int rank) {
+		//print the result title, text excerpt, and url
+		String content = document.getContent();
+		WebURL url = document.getMetadata().getUrl();
+		System.out.print(String.format("%s) %s (score: %f)\n%s\n%s\n%s\n",
+				rank,	//counter
+				document.getMetadata().getTitle(),	//title
+				score, //cosine score
+				suggestExcerpt(content, terms, EXCERPT_LENGTH),	//excerpt
+				url,	//url
+				repeat("_", url.toString().length())));
+	}
+
+	/**
+	 * Suggest a result description for the given document, relative to the terms
+	 * in the search query. This implementation uses the first sentence containing
+	 * any of the terms
+	 * @param content
+	 * @param terms
+	 * @return
+	 */
+	private static String suggestExcerpt(String content, String[] terms, int length) {
+		content = content.replaceAll("\\s+", " ");
+		int excerptOffset = 0;
+		boolean found = false;
+		for (int j=0 ; !found && j < terms.length ; j++) {
+			int idx = content.indexOf(terms[j]);
+			if (idx > 0) {
+				found = true;
+				excerptOffset = idx;
+			}
+		}
+		int sentenceOffset = 0, pastOffset = 0;
+		while (sentenceOffset >= 0 && sentenceOffset < excerptOffset) {
+			pastOffset = sentenceOffset;
+			sentenceOffset = content.indexOf(".", sentenceOffset + 1);
+		}
+		sentenceOffset = pastOffset;
+		
+		if ((excerptOffset - sentenceOffset) < length) {
+			excerptOffset = sentenceOffset;
+			while (Arrays.<Character>asList(new Character[] {'.', ' '}).contains(content.charAt(excerptOffset))) {
+				excerptOffset++;
+			}
+		}
+		
+		return content.substring(excerptOffset, excerptOffset + Math.min(length, content.length() - excerptOffset));
 	}
 	
 	private static Index crawl() {
@@ -62,7 +139,7 @@ public class Labo1 {
 		config.setPolitenessDelay(250); 			//minimum 250ms for tests
 		config.setUserAgentString("crawler4j/WEM/2017");
 		config.setMaxDepthOfCrawling(8);			//max 2-3 levels for tests on large website
-		config.setMaxPagesToFetch(5000);			//-1 for unlimited number of pages
+		config.setMaxPagesToFetch(10);			//-1 for unlimited number of pages
 		
 		RobotstxtConfig robotsConfig = new RobotstxtConfig(); //by default
 		
@@ -70,7 +147,7 @@ public class Labo1 {
 		RobotstxtServer robotstxtServer = new RobotstxtServer(robotsConfig, pageFetcher);
         
 		//we create the indexer and the indexerQueue
-		Indexer indexer = null; //TODO vous instancierez ici votre implémentation de l'indexer
+		Indexer indexer = new IndexerImpl();
 		WebPageIndexerQueue queue = new WebPageIndexerQueue(indexer);
 		queue.start();
 		//we set the indexerQueue reference to all the crawler threads
@@ -81,7 +158,7 @@ public class Labo1 {
 			controller.addSeed(START_URL);
 			controller.start(WebPageCrawler.class, 20); //this method keep the hand until the crawl is done
 		} catch (Exception e) {
-			e.printStackTrace();
+			throw new RuntimeException(e);
 		}
 		
 		queue.setAllDone(); //we notify the indexerQueue that it will not receive more data
@@ -100,8 +177,7 @@ public class Labo1 {
 			out.writeObject(index);
 			out.close();
 		} catch(IOException e) {
-			e.printStackTrace();
-			System.exit(1);
+			throw new RuntimeException(e);
 		}
 	}
 	
@@ -113,13 +189,23 @@ public class Labo1 {
 			in.close();
 			if(o instanceof Index) {
 				return (Index) o;
+			} else {
+				throw new IllegalStateException(filename + " is not a valid index file!");
 			}
 		} catch (Exception e) {
-			e.printStackTrace();
-			System.exit(1);
+			throw new RuntimeException(e);
 		}
-		
-		return null;
 	}
 	
+	/**
+	 * repeat a string
+	 * @param string
+	 * @param times
+	 * @return {@code string} repeated {@code times} times
+	 */
+	private static String repeat(String string, int times) {
+		StringBuilder sb = new StringBuilder();
+		for (int i=0 ; i < times ; i++) sb.append(string);
+		return sb.toString();
+	}
 }

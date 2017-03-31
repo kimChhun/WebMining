@@ -14,15 +14,16 @@ import edu.uci.ics.crawler4j.url.WebURL;
 
 public class WebPageCrawler extends WebCrawler {
 	
-	public static List<String> imageExtensions;
+	public static List<String> excludedExtensions;
 	
 	static {
-		imageExtensions = new LinkedList<String>();
-		imageExtensions.add("png");
-		imageExtensions.add("jpg");
-		imageExtensions.add("gif");
-		imageExtensions.add("bmp");
+		excludedExtensions = new LinkedList<String>();
+		excludedExtensions.add("png");
+		excludedExtensions.add("jpg");
 		System.out.println("Satic initializer done");
+		excludedExtensions.add("gif");
+		excludedExtensions.add("bmp");
+		excludedExtensions.add("pdf");
 	}
 
 	private static WebPageIndexerQueue indexer = null;
@@ -37,8 +38,8 @@ public class WebPageCrawler extends WebCrawler {
 			System.out.println("Url: " + url);
 		}
 		
-		if (imageExtensions.contains(getextension(url))) {
-			if (Labo1.DEBUG || true) System.out.println("skipping url: "+url);
+		if (excludedExtensions.contains(getextension(url))) {
+			if (Labo1.DEBUG) System.out.println("skipping url: "+url);
 			return false;
 		}
 		return true;
@@ -46,10 +47,10 @@ public class WebPageCrawler extends WebCrawler {
 
 	private String getextension(WebURL url) {
 		String[] parts = url.getPath().split("/");
+		if (parts.length < 1) return "";
 		String extension = parts[parts.length - 1];
 		if (extension.length() < 3) return "";
 		extension = extension.substring(extension.length() -3, extension.length());
-		System.out.println("url part : "+ extension);
 		return extension;
 	}
 	
@@ -57,8 +58,7 @@ public class WebPageCrawler extends WebCrawler {
 	public void visit(Page page) {
 		
 		if(indexer == null) {
-			System.err.println("WebPageSaver doesn't contains a WebPageIndexer, you must set it in Labo1.java before starting the crawling");
-			System.exit(1);
+			throw new IllegalStateException("WebPageSaver doesn't contain a WebPageIndexer, you must set it in Labo1.java before starting the crawling");
 		}
 
 		Metadata metadata = new Metadata();
