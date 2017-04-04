@@ -16,14 +16,17 @@ public class WebPageCrawler extends WebCrawler {
 	
 	public static List<String> excludedExtensions;
 	
+	private static WebURL initialWebURL;
+	private static Object initialWebURLMonitor = new Object();
+	
 	static {
 		excludedExtensions = new LinkedList<String>();
 		excludedExtensions.add("png");
 		excludedExtensions.add("jpg");
-		System.out.println("Satic initializer done");
 		excludedExtensions.add("gif");
 		excludedExtensions.add("bmp");
 		excludedExtensions.add("pdf");
+		System.out.println("Satic initializer done");
 	}
 
 	private static WebPageIndexerQueue indexer = null;
@@ -42,6 +45,18 @@ public class WebPageCrawler extends WebCrawler {
 			if (Labo1.DEBUG) System.out.println("skipping url: "+url);
 			return false;
 		}
+		
+		synchronized(initialWebURLMonitor) {if (initialWebURL == null) {
+			initialWebURL = referringPage == null ? url : referringPage.getWebURL();
+			System.err.println("set initial url to " + initialWebURL);
+		}}
+		
+		//get pages from the same fully qualified domain name only (e.g en.wikipedia.org)
+		if (!(initialWebURL.getDomain().equals(url.getDomain()) &&
+				(initialWebURL.getSubDomain().equals(url.getSubDomain())))) {
+			return false;
+		}
+		
 		return true;
 	}
 

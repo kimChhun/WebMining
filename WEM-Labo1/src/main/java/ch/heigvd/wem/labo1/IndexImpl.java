@@ -1,5 +1,6 @@
 package ch.heigvd.wem.labo1;
 
+import java.io.IOException;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -15,9 +16,13 @@ import ch.heigvd.wem.labo1.IndexerImpl.Posting;
 public class IndexImpl extends Index {
 	private static final long serialVersionUID = 3728664384283588715L;
 	
+	/** Inverted index */
 	private Map<String, Posting> postings = new HashMap<String, Posting>();
+	/** Metadata indexed by docId */
 	private Map<Long, Metadata> metadata = new HashMap<Long, Metadata>();
+	/** Content by docId, used to display an excerpt in the result page */
 	private Map<Long, String> data = new HashMap<Long, String>();
+	/** For docId, a list of words and their counts, to avoid counting occurrences during the retrieval phase */
 	private Map<Long, Map<String, Integer>> wordCounts = new HashMap<Long, Map<String, Integer>>();
 	@Override
 	public Posting find(String term) {
@@ -43,7 +48,12 @@ public class IndexImpl extends Index {
 	}
 	
 	private void countWords(long documentId) {
-		StringTokenizer tokenizer = new StringTokenizer(data.get(documentId));
+		StringTokenizer tokenizer;
+		try {
+			tokenizer = new CustomStringTokenizer(data.get(documentId), Labo1.COMMON_WORDS);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 		Map<String, Integer> unsortedCounts = new HashMap<String, Integer>();
 		while (tokenizer.hasMoreTokens()) {
 			String token = tokenizer.nextToken();

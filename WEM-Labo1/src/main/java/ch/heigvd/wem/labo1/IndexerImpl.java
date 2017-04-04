@@ -1,5 +1,6 @@
 package ch.heigvd.wem.labo1;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -12,15 +13,23 @@ import java.util.StringTokenizer;
 import ch.heigvd.wem.data.Metadata;
 import ch.heigvd.wem.interfaces.Index;
 import ch.heigvd.wem.interfaces.Indexer;
+import edu.uci.ics.crawler4j.url.WebURL;
 
 public class IndexerImpl implements Indexer {
 	
 	private Index index = new IndexImpl();
 
-	public synchronized void index(Metadata metadata, String content) {
-		StringTokenizer tokenizer = new StringTokenizer(content);
+	public void index(Metadata metadata, String content) {
+		StringTokenizer tokenizer;
+		try {
+			tokenizer = new CustomStringTokenizer(content, Labo1.COMMON_WORDS);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 		int offset = 0;
-		index.addDocument(metadata, content);
+		synchronized(index) {
+			index.addDocument(metadata, content);
+		}
 		while (tokenizer.hasMoreElements()) {
 			String term = tokenizer.nextToken();
 			index.addPosting(term, metadata.getDocID(), offset);

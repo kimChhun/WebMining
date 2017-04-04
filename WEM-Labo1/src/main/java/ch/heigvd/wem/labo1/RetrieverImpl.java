@@ -1,5 +1,6 @@
 package ch.heigvd.wem.labo1;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -47,7 +48,12 @@ public class RetrieverImpl extends Retriever {
 	 * @return
 	 */
 	private Map<String, Integer> countVector(String text) {
-		StringTokenizer tokenizer = new StringTokenizer(text);
+		StringTokenizer tokenizer;
+		try {
+			tokenizer = new CustomStringTokenizer(text, Labo1.COMMON_WORDS);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
 		//count and store in a regular unsorted map
 		Map<String, Integer> unsortedVector = new HashMap<String, Integer>();
 		while (tokenizer.hasMoreTokens()) {

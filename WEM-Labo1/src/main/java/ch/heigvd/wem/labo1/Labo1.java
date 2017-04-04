@@ -1,15 +1,19 @@
 package ch.heigvd.wem.labo1;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import ch.heigvd.wem.WebPageIndexerQueue;
 import ch.heigvd.wem.data.Document;
@@ -29,16 +33,27 @@ public class Labo1 {
 
 	private enum Mode {
 		CRAWL,
-		RESTORE;
+		RESTORE,
 	}
 	
 	// CONFIGURATION
 	public static final String  START_URL 			= "https://en.wikipedia.org/wiki/Web_mining"; //"http://iict.heig-vd.ch";
-	public static final boolean DEBUG				= true;
-	private static final Mode	mode				= Mode.RESTORE;
+	public static final boolean DEBUG				= false;
+	private static final Mode	mode				= Mode.CRAWL;
 	private static final String	indexSaveFileName	= "index.bin";
-	private static final double MIN_SIMILARITY		= 0.0000d; // the minimum similarity to display in result list. set to 0 to show all matches.
+	private static final double MIN_SIMILARITY		= 0.005d; // the minimum similarity to display in result list. set to 0 to show all matches.
 	private static final int	EXCERPT_LENGTH		= 120; //the number of characters to display per result
+	public static final Set<String> COMMON_WORDS = new HashSet<String>();
+	
+	static {
+		File commonWordsFile = new File(
+				Labo1.class.getClassLoader().getResource("common_words").getPath().replaceAll("%20", " "));
+		try {
+			loadCommonWordsFile(commonWordsFile);
+		} catch (IOException e) {
+			throw new RuntimeException("Unable to load common words file", e);
+		}
+	}
 	
 	public static void main(String[] args) {
 
@@ -47,7 +62,7 @@ public class Labo1 {
 		switch(mode) {
 		case CRAWL:
 			//we crawl and save the index to disk
-			index = crawl();
+			index = crawl(null);
 			saveIndex(indexSaveFileName, index);
 			break;
 			
@@ -56,24 +71,18 @@ public class Labo1 {
 			index = loadIndex(indexSaveFileName);
 			break;
 		}
-
-
-		//normalize input arguments into an array of single words
-		List<String> termList = new LinkedList<String>();
-		for (String arg : args) termList.addAll(Arrays.asList(arg.split("\\s+")));
-		String[] terms = termList.toArray(new String[0]);
 		
-		//Retriever retriever = new RetrieverImpl(index);
+		//initialize retriever and execute query
 		Retriever retriever = new RetrieverImpl(index, WeightingType.TF_IDF);
 		
-		Map<Long, Double> results = retriever.executeQuery(String.join(" ", terms));
+		Map<Long, Double> results = retriever.executeQuery(String.join(" ", args));
 		
 		int i = 1;
 		for (Map.Entry<Long, Double>  result : results.entrySet()) {
 			Double score = result.getValue();
 			Document document = index.getDocument(result.getKey());
 			if (score < MIN_SIMILARITY) break;
-			printDocument(document, score, terms, i);
+			printDocument(document, score, args, i);
 			i++;
 		}
 		
@@ -128,18 +137,18 @@ public class Labo1 {
 		return content.substring(excerptOffset, excerptOffset + Math.min(length, content.length() - excerptOffset));
 	}
 	
-	private static Index crawl() {
+	private static Index crawl(Index index) {
 		// CONFIGURATION
 		CrawlConfig config = new CrawlConfig();
-		config.setMaxConnectionsPerHost(10);		//maximum 10 for tests
+		config.setMaxConnectionsPerHost(8);		//maximum 10 for tests
 		config.setConnectionTimeout(4000); 			//4 sec.
 		config.setSocketTimeout(5000);				//5 sec.
 		config.setCrawlStorageFolder("temp");
 		config.setIncludeHttpsPages(true);
-		config.setPolitenessDelay(250); 			//minimum 250ms for tests
+		config.setPolitenessDelay(500); 			//minimum 250ms for tests
 		config.setUserAgentString("crawler4j/WEM/2017");
-		config.setMaxDepthOfCrawling(8);			//max 2-3 levels for tests on large website
-		config.setMaxPagesToFetch(10);			//-1 for unlimited number of pages
+		config.setMaxDepthOfCrawling(2);			//max 2-3 levels for tests on large website
+		config.setMaxPagesToFetch(1000);			//-1 for unlimited number of pages
 		
 		RobotstxtConfig robotsConfig = new RobotstxtConfig(); //by default
 		
@@ -207,5 +216,20 @@ public class Labo1 {
 		StringBuilder sb = new StringBuilder();
 		for (int i=0 ; i < times ; i++) sb.append(string);
 		return sb.toString();
+	}
+	
+	private static void loadCommonWordsFile(File file) throws IOException{
+		BufferedReader reader = null;
+		try {
+			reader = new BufferedReader(new FileReader(file));
+			while (true) {
+				String line = reader.readLine();
+				if (line == null)
+					break;
+				COMMON_WORDS.add(line);
+			} 
+		} finally {
+			if (reader != null) reader.close();
+		}
 	}
 }
