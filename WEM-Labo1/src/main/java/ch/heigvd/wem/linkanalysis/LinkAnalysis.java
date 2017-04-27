@@ -1,11 +1,16 @@
 package ch.heigvd.wem.linkanalysis;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Vector;
 
 /**
  * This class provides static methods to make link analysis.
  */
 public class LinkAnalysis {
+	
+	
 
 	/**
 	 * Calculates and returns the hub vector.
@@ -16,9 +21,32 @@ public class LinkAnalysis {
 	public static Vector<Double> calculateHc (AdjacencyMatrix m, Vector<Double> ac) {
 
 		Vector<Double> result = new Vector<Double>(m.size());
-
+		double hubs=0;
+		double norm = 0.0;
+		int k=5;
+		if (k>m.size()){
+			k=m.size();
+		}
 		/* A IMPLEMENTER */
-
+		for(int i=0;i<m.size();i++){
+			result.add(ac.get(i));
+		}
+		
+		for (int i=0; i<k; i++) {
+			norm = 0.0;
+			hubs = 0;
+    		for(int j=0;j<m.size();j++){
+    			if(m.get(i, j) == 1){
+    				result.set(j, result.get(j)+1); // calculate Hubs
+    				hubs += result.get(j);
+               	}
+    		}
+    		norm += Math.pow(hubs, 2);
+		}
+		norm = Math.sqrt(norm);
+        for(int i=0 ; i<m.size() ; i++){
+        	//result.set(i,result.get(i)/norm);
+        }
 		return result; 
 	}
 
@@ -31,9 +59,32 @@ public class LinkAnalysis {
 	public static Vector<Double> calculateAc (AdjacencyMatrix m, Vector<Double> hc) {
 
 		Vector<Double> result = new Vector<Double>(m.size());
-
+		double auth=0;
+		double norm = 0.0;
+		int k=5;
+		if (k>m.size()){
+			k=m.size();
+		}
 		/* A IMPLEMENTER */
-
+		for(int i=0;i<m.size();i++){
+			result.add(hc.get(i));
+		}
+		
+		for (int i=0; i<k; i++) {
+			norm = 0.0;
+			auth = 0;
+    		for(int j=0;j<m.size();j++){
+    			if(m.get(i, j) == 1){
+    				result.set(i, result.get(i)+1); // calculate Hubs
+    				auth += result.get(i);
+               	}
+    		}
+    		norm += Math.pow(auth, 2);
+		}
+		norm = Math.sqrt(norm);
+        for(int i=0 ; i<m.size() ; i++){
+        	//result.set(i,result.get(i)/norm);
+        }
 		return result; 
 	}
 
