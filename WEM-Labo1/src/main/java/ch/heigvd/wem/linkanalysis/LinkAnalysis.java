@@ -98,9 +98,48 @@ public class LinkAnalysis {
 
 		Vector<Double> result = new Vector<Double>(m.size());
 
-		/* A IMPLEMENTER */
+		Vector<Double> _E = new Vector<Double>(m.size());
+		for (int i=0 ; i<m.size() ; i++) _E.add(0.15D / m.size());
+		// set to 0 if can be reached
+		for (int i=0 ; i<m.size() ; i++)
+			for (int j=0 ; j<m.size() ; j++)
+				if (m.get(i, j) != 0D) _E.set(j, 0D);
+		//now _E contains 0.15/|V| for unlinked pages and 0 elsewhere
+		
+		//Prc = normalize(0.85 . (Mt . pr) + E)
+		result = normalize(add(multiply(m.transpose().multiply(pr), 0.85D), _E));
 
 		return result; 
 	}
 	
+	private static Vector<Double> multiply(Vector<Double> vector, Double constant) {
+		Vector<Double> output = new Vector<Double>(vector.size());
+		for (int i=0 ; i<vector.size() ; i++) output.add(constant * vector.get(i));
+		return output;
+	}
+	
+	private static Vector<Double> add(Vector<Double> vector, Double constant) {
+		Vector<Double> output = new Vector<Double>(vector.size());
+		for (int i=0 ; i<vector.size() ; i++) output.add(constant + vector.get(i));
+		return output;
+	}
+	
+	private static Vector<Double> add(Vector<Double> vector, Vector<Double> other) {
+		Vector<Double> output = new Vector<Double>(vector.size());
+		for (int i=0 ; i<vector.size() ; i++) output.add(other.get(i) + vector.get(i));
+		return output;
+	}
+	
+	private static double sum(Vector<Double> vector) {
+		double sum = 0D;
+		for (Double value : vector) sum+= value;
+		return sum;
+	}
+	
+	private static Vector<Double> normalize(Vector<Double> vector) {
+		Vector<Double> output = new Vector<Double>(vector.size());
+		double sum = sum(vector);
+		for (int i=0 ; i<vector.size() ; i++) output.add(vector.get(i)/sum);
+		return output;
+	}
 }

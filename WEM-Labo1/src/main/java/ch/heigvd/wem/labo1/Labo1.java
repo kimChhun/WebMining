@@ -22,6 +22,7 @@ import ch.heigvd.wem.interfaces.Index;
 import ch.heigvd.wem.interfaces.Indexer;
 import ch.heigvd.wem.interfaces.Retriever;
 import ch.heigvd.wem.interfaces.Retriever.WeightingType;
+import ch.heigvd.wem.linkanalysis.RankingStrategy;
 import edu.uci.ics.crawler4j.crawler.CrawlConfig;
 import edu.uci.ics.crawler4j.crawler.CrawlController;
 import edu.uci.ics.crawler4j.fetcher.PageFetcher;
@@ -39,11 +40,14 @@ public class Labo1 {
 	// CONFIGURATION
 	public static final String  START_URL 			= "https://en.wikipedia.org/wiki/Web_mining"; //"http://iict.heig-vd.ch";
 	public static final boolean DEBUG				= false;
-	private static final Mode	mode				= Mode.CRAWL;
+	private static final Mode	mode				= Mode.RESTORE;
 	private static final String	indexSaveFileName	= "index.bin";
-	private static final double MIN_SIMILARITY		= 0.005d; // the minimum similarity to display in result list. set to 0 to show all matches.
+	public static final double	MIN_SIMILARITY		= 0.0d; // the minimum similarity to display in result list. set to 0 to show all matches.
+	public static final int		MAX_RESULTS			= 20; //maximum  number of results to display
 	private static final int	EXCERPT_LENGTH		= 120; //the number of characters to display per result
 	public static final Set<String> COMMON_WORDS = new HashSet<String>();
+	
+	public static Class<? extends RankingStrategy> rankingStrategy = null;
 	
 	static {
 		File commonWordsFile = new File(
@@ -55,7 +59,7 @@ public class Labo1 {
 		}
 	}
 	
-	public static void main(String[] args) {
+	public static void main(String[] args) throws InstantiationException, IllegalAccessException {
 
 		Index index = null;
 		
@@ -77,11 +81,18 @@ public class Labo1 {
 		
 		Map<Long, Double> results = retriever.executeQuery(String.join(" ", args));
 		
+		if (rankingStrategy != null) {
+			RankingStrategy strategy = rankingStrategy.newInstance();
+			strategy.setIndex(index);
+			results = strategy.rank(results);
+		}
+		
 		int i = 1;
 		for (Map.Entry<Long, Double>  result : results.entrySet()) {
 			Double score = result.getValue();
 			Document document = index.getDocument(result.getKey());
 			if (score < MIN_SIMILARITY) break;
+			if (i > MAX_RESULTS) break;
 			printDocument(document, score, args, i);
 			i++;
 		}
@@ -148,7 +159,7 @@ public class Labo1 {
 		config.setPolitenessDelay(500); 			//minimum 250ms for tests
 		config.setUserAgentString("crawler4j/WEM/2017");
 		config.setMaxDepthOfCrawling(2);			//max 2-3 levels for tests on large website
-		config.setMaxPagesToFetch(1000);			//-1 for unlimited number of pages
+		config.setMaxPagesToFetch(100);			//-1 for unlimited number of pages
 		
 		RobotstxtConfig robotsConfig = new RobotstxtConfig(); //by default
 		

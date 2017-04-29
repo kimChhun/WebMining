@@ -7,7 +7,7 @@ import java.util.ArrayList;
  * Simple implementation of the {@link AdjacencyMatrix} using ArrayLists.
  * @author Florian Poulin <i>(florian.poulin at heig-vd.ch)</i>
  */
-public class ArrayListMatrix implements AdjacencyMatrix {
+public class ArrayListMatrix extends AdjacencyMatrix {
 
 	// For outputs
 	private final static String spacerStr = " ";

@@ -1,24 +1,13 @@
 package ch.heigvd.wem.linkanalysis;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
 import java.util.Vector;
 
 import ch.heigvd.wem.labo1.Labo1;
-import ch.heigvd.wem.linkanalysis.*;
 
 public class lab2 {
-	private static final int List = 0;
-	private static final int String = 0;
+	private static final int LIST = 0;
+	private static final int STRING = 0;
 	//private static String filename =null;
 	private static AdjacencyMatrix am;
 	private static HashMap<String,Integer> map;
@@ -64,7 +53,10 @@ public class lab2 {
     		AuthHash.put(i+1, vhubs.get(i));
     		HubsHash.put(i+1, vauths.get(i));
         }
-		
+
+
+        System.out.println("\nRunning search query with PageRank '" + String.join(" ", args) + "'");
+        lab2_2.main(args);
 	}
 
 }

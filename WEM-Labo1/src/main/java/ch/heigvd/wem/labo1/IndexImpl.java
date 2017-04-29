@@ -12,6 +12,7 @@ import ch.heigvd.wem.data.Document;
 import ch.heigvd.wem.data.Metadata;
 import ch.heigvd.wem.interfaces.Index;
 import ch.heigvd.wem.labo1.IndexerImpl.Posting;
+import edu.uci.ics.crawler4j.url.WebURL;
 
 public class IndexImpl extends Index {
 	private static final long serialVersionUID = 3728664384283588715L;
@@ -24,6 +25,9 @@ public class IndexImpl extends Index {
 	private Map<Long, String> data = new HashMap<Long, String>();
 	/** For docId, a list of words and their counts, to avoid counting occurrences during the retrieval phase */
 	private Map<Long, Map<String, Integer>> wordCounts = new HashMap<Long, Map<String, Integer>>();
+	/** docments by url */
+	private Map<WebURL, Long> byUrl = new HashMap<WebURL, Long>();
+	
 	@Override
 	public Posting find(String term) {
 		return postings.get(term);
@@ -44,6 +48,7 @@ public class IndexImpl extends Index {
 	public void addDocument(Metadata metadata, String data) {
 		this.metadata.put(metadata.getDocID(), metadata);
 		this.data.put(metadata.getDocID(), data);
+		this.byUrl.put(metadata.getUrl(), metadata.getDocID());
 		countWords(metadata.getDocID());
 	}
 	
@@ -101,5 +106,12 @@ public class IndexImpl extends Index {
 	@Override
 	public long documentCount() {
 		return (long) data.size();
+	}
+	
+	@Override
+	public Document getDocumentByUrl(WebURL url) {
+		Long documentId = byUrl.get(url);
+		if (documentId == null) return null;
+		return getDocument(documentId);
 	}
 }

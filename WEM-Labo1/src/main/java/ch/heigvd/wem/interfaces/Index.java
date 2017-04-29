@@ -5,6 +5,7 @@ import java.util.Map;
 import ch.heigvd.wem.data.Document;
 import ch.heigvd.wem.data.Metadata;
 import ch.heigvd.wem.labo1.IndexerImpl.Posting;
+import edu.uci.ics.crawler4j.url.WebURL;
 
 /**
  * A dummy class representing the index
@@ -21,5 +22,5 @@ public abstract class Index implements Serializable {
 	public abstract long documentCount();
 	public abstract Map<String, Integer> getWordCounts(long documentId);
 	public abstract int getWordCount(long documentId, String word);
-	
+	public abstract Document getDocumentByUrl(WebURL url);
 }
