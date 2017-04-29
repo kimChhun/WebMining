@@ -37,7 +37,7 @@ public class CustomStringTokenizer extends StringTokenizer {
 	}
 	
 	private boolean dropToken(String token) {
-		return commonWords.contains(token);
+		return commonWords.contains(token.toLowerCase());
 	}
 
 	private String preprocess(String token) {

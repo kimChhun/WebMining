@@ -237,7 +237,7 @@ public class Labo1 {
 				String line = reader.readLine();
 				if (line == null)
 					break;
-				COMMON_WORDS.add(line);
+				COMMON_WORDS.add(line.toLowerCase());
 			} 
 		} finally {
 			if (reader != null) reader.close();
